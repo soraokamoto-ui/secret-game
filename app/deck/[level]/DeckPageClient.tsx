@@ -161,22 +161,28 @@ function AccessGate({
               transition={{ duration: 0.5 }}
               className="flex flex-col items-center gap-4"
             >
-              <input
-                type="text"
-                value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
-                onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-                placeholder="ACCESS CODE"
-                maxLength={10}
-                className="text-center tracking-[0.3em] outline-none w-56 py-3 px-4 rounded-xl"
-                style={{
-                  background: "#F5F0E8",
-                  border: `1px solid ${status === "error" ? "#C94A4A" : "#C9A96E88"}`,
-                  color: "#2C2420",
-                  fontFamily: "Cormorant Garamond, serif",
-                  fontSize: 16,
-                }}
+             <input
+             type="text"
+             value={code}
+             onChange={(e) => setCode(e.target.value.toUpperCase())}
+             onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+             placeholder="ACCESS CODE"
+             maxLength={10}
+             autoComplete="off"
+             autoCorrect="off"
+             autoCapitalize="none"
+             spellCheck={false}
+             inputMode="text"
+             className="text-center tracking-[0.3em] outline-none w-56 py-3 px-4 rounded-xl"
+             style={{
+              background: "#F5F0E8",
+              border: `1px solid ${status === "error" ? "#C94A4A" : "#C9A96E88"}`,
+              color: "#2C2420",
+              fontFamily: "Cormorant Garamond, serif",
+              fontSize: 16,
+              }}
               />
+  
               {status === "error" && (
                 <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs tracking-widest" style={{ color: "#C94A4A" }}>
                   INVALID CODE
