@@ -227,7 +227,6 @@ function CardSlider({ cards, onSelect }: { cards: CardData[]; onSelect: (card: C
 
   const [current, setCurrent] = useState(() => Math.floor(cards.length / 2));
   const touchStartX = useRef<number | null>(null);
-  const touchStartY = useRef<number | null>(null);
 
   function playSlide() {
     try {
@@ -252,25 +251,19 @@ function CardSlider({ cards, onSelect }: { cards: CardData[]; onSelect: (card: C
 
   function onTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
   }
 
   function onTouchEnd(e: React.TouchEvent) {
-    if (touchStartX.current === null || touchStartY.current === null) return;
+    if (touchStartX.current === null) return;
     const diffX = touchStartX.current - e.changedTouches[0].clientX;
-    const diffY = Math.abs(touchStartY.current - e.changedTouches[0].clientY);
-    // 横スワイプのみ反応（縦スクロールと区別）
-    if (Math.abs(diffX) > 30 && diffY < 60) {
-      if (diffX > 0) next();
-      else prev();
-    }
+    if (diffX > 40) next();
+    else if (diffX < -40) prev();
     touchStartX.current = null;
-    touchStartY.current = null;
   }
 
-  // カードの重なり表示
   const CARD_W = 200;
   const CARD_H = 300;
+  const OVERLAP = 24; // 重なり量
 
   return (
     <div className="flex flex-col items-center gap-8 w-full">
@@ -282,34 +275,34 @@ function CardSlider({ cards, onSelect }: { cards: CardData[]; onSelect: (card: C
         心に浮かぶカードを選んでください。
       </p>
 
-      {/* カードデッキ表示エリア */}
+      {/* カードデッキ */}
       <div
         className="relative w-full flex items-center justify-center"
-        style={{ height: CARD_H + 60, touchAction: "pan-y" }}
+        style={{ height: CARD_H + 40 }}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
         {shuffled.map((card, i) => {
           const diff = i - current;
           const absDiff = Math.abs(diff);
-          if (absDiff > 5) return null;
+          if (absDiff > 6) return null;
 
           const isActive = diff === 0;
-          // 重なり具合の計算
-          const offsetX = diff * 28;
-          const offsetY = absDiff * 4;
-          const scale = isActive ? 1 : Math.max(0.75, 1 - absDiff * 0.06);
+          // 真横のみオフセット、傾き・縦移動なし
+          const offsetX = diff * OVERLAP;
           const zIndex = isActive ? 30 : 20 - absDiff;
-          const opacity = absDiff > 4 ? 0 : 1 - absDiff * 0.1;
-          const rotate = diff * 2;
 
           return (
             <motion.div
               key={card.id}
               className="absolute cursor-pointer"
               style={{ width: CARD_W, height: CARD_H, zIndex }}
-              animate={{ x: offsetX, y: offsetY, scale, opacity, rotate }}
-              transition={{ type: "spring", stiffness: 260, damping: 28 }}
+              animate={{
+                x: offsetX,
+                y: isActive ? -10 : 0,
+                scale: isActive ? 1.04 : 1,
+              }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
               onClick={() => {
                 if (isActive) {
                   playCardSelect();
@@ -335,7 +328,7 @@ function CardSlider({ cards, onSelect }: { cards: CardData[]; onSelect: (card: C
                     <motion.p
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      transition={{ delay: 0.15 }}
+                      transition={{ delay: 0.1 }}
                       className="text-xs tracking-[0.2em]"
                       style={{ color: "#C9A96E", fontFamily: "Cormorant Garamond, serif", lineHeight: 1.8 }}
                     >
