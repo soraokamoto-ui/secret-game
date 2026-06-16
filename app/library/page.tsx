@@ -32,6 +32,9 @@ function getVisibleCount(unlockedLevels: number[]): number {
   return 12;
 }
 
+const CARD_W = 160;
+const CARD_H = 240;
+
 export default function LibraryPage() {
   const [cards, setCards] = useState<CardData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +66,35 @@ export default function LibraryPage() {
       className="min-h-screen px-4 py-12"
       style={{ background: "linear-gradient(160deg, #EDE8E0 0%, #E0D8CC 100%)" }}
     >
+      {/* グローバルスタイル */}
+      <style>{`
+        .week-card-row {
+          display: flex;
+          gap: 12px;
+          overflow-x: auto;
+          padding-bottom: 8px;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+        .week-card-row::-webkit-scrollbar {
+          display: none;
+        }
+        .week-card-row > * {
+          flex-shrink: 0;
+        }
+        @media (min-width: 768px) {
+          .week-card-row {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 12px;
+            overflow-x: visible;
+          }
+          .week-card-row > * {
+            flex-shrink: unset;
+          }
+        }
+      `}</style>
+
       {/* ヘッダー */}
       <div className="max-w-5xl mx-auto mb-12">
         <div className="flex items-center justify-between mb-6">
@@ -95,7 +127,7 @@ export default function LibraryPage() {
 
             return (
               <div key={week.key}>
-                {/* weekヘッダー：sticky でスクロール中も固定 */}
+                {/* weekヘッダー sticky */}
                 <div
                   className="flex items-center gap-4 mb-8"
                   style={{
@@ -119,22 +151,8 @@ export default function LibraryPage() {
                   <div className="flex-1 h-px" style={{ background: "#C9A96E33" }} />
                 </div>
 
-                {/* カードグリッド：PC 6列、スマホ 3列 */}
-                <div
-                  className="grid gap-3"
-                  style={{
-                    gridTemplateColumns: "repeat(3, 1fr)",
-                  }}
-                >
-                  {/* PC では6列 */}
-                  <style>{`
-                    @media (min-width: 768px) {
-                      .card-grid-${week.key} {
-                        grid-template-columns: repeat(6, 1fr) !important;
-                      }
-                    }
-                  `}</style>
-
+                {/* カード行：PC=6列グリッド、スマホ=横スクロール */}
+                <div className="week-card-row">
                   {/* 解放済みカード */}
                   {week.unlocked.map((card) => (
                     <div key={card.id} className="flex justify-center">
@@ -142,14 +160,14 @@ export default function LibraryPage() {
                     </div>
                   ))}
 
-                  {/* ロック済みカード：解放済みと同じサイズ */}
+                  {/* ロック済みカード */}
                   {Array.from({ length: lockedCount }).map((_, li) => (
                     <div key={`locked-${week.key}-${li}`} className="flex justify-center">
                       <div
                         className="relative rounded-2xl overflow-hidden"
                         style={{
-                          width: 160,
-                          height: 240,
+                          width: CARD_W,
+                          height: CARD_H,
                           background: "linear-gradient(135deg, #E8DDD0, #C9A96E22)",
                           border: "1px solid #C9A96E22",
                         }}
