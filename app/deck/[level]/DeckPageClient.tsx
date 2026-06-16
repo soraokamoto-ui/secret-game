@@ -216,11 +216,6 @@ function AccessGate({
 // カードスライダー
 // ============================================================
 function CardSlider({ cards, onSelect }: { cards: CardData[]; onSelect: (card: CardData) => void }) {
-  const CARD_W = 110;
-  const CARD_H = 168;
-  const GAP = 16;
-  const STEP = CARD_W + GAP;
-
   const [shuffled] = useState<CardData[]>(() => {
     const a = [...cards];
     for (let i = a.length - 1; i > 0; i--) {
@@ -232,11 +227,12 @@ function CardSlider({ cards, onSelect }: { cards: CardData[]; onSelect: (card: C
 
   const [current, setCurrent] = useState(() => Math.floor(cards.length / 2));
   const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
 
   function playSlide() {
-    if (typeof window === "undefined") return;
     try {
-      const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const ctx = new AudioCtx();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
@@ -248,9 +244,7 @@ function CardSlider({ cards, onSelect }: { cards: CardData[]; onSelect: (card: C
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.1);
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
   }
 
   function prev() { playSlide(); setCurrent((i) => Math.max(0, i - 1)); }
@@ -258,17 +252,28 @@ function CardSlider({ cards, onSelect }: { cards: CardData[]; onSelect: (card: C
 
   function onTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
-  }
-  function onTouchEnd(e: React.TouchEvent) {
-    if (touchStartX.current === null) return;
-    const diff = touchStartX.current - e.changedTouches[0].clientX;
-    if (diff > 40) next();
-    else if (diff < -40) prev();
-    touchStartX.current = null;
+    touchStartY.current = e.touches[0].clientY;
   }
 
+  function onTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const diffX = touchStartX.current - e.changedTouches[0].clientX;
+    const diffY = Math.abs(touchStartY.current - e.changedTouches[0].clientY);
+    // 横スワイプのみ反応（縦スクロールと区別）
+    if (Math.abs(diffX) > 30 && diffY < 60) {
+      if (diffX > 0) next();
+      else prev();
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  }
+
+  // カードの重なり表示
+  const CARD_W = 200;
+  const CARD_H = 300;
+
   return (
-    <div className="flex flex-col items-center gap-10 w-full">
+    <div className="flex flex-col items-center gap-8 w-full">
       <p
         className="text-sm text-center leading-relaxed px-6"
         style={{ color: "#8B7355", fontFamily: "'Zen Kaku Gothic New', sans-serif" }}
@@ -277,88 +282,81 @@ function CardSlider({ cards, onSelect }: { cards: CardData[]; onSelect: (card: C
         心に浮かぶカードを選んでください。
       </p>
 
+      {/* カードデッキ表示エリア */}
       <div
-        className="relative w-full overflow-hidden"
-        style={{ height: CARD_H + 32 }}
+        className="relative w-full flex items-center justify-center"
+        style={{ height: CARD_H + 60, touchAction: "pan-y" }}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
-        <div
-          className="absolute left-0 top-0 bottom-0 w-20 pointer-events-none z-10"
-          style={{ background: "linear-gradient(to right, #EDE8E0, transparent)" }}
-        />
-        <div
-          className="absolute right-0 top-0 bottom-0 w-20 pointer-events-none z-10"
-          style={{ background: "linear-gradient(to left, #EDE8E0, transparent)" }}
-        />
+        {shuffled.map((card, i) => {
+          const diff = i - current;
+          const absDiff = Math.abs(diff);
+          if (absDiff > 5) return null;
 
-        <div className="absolute inset-0 flex items-center justify-center">
-          {shuffled.map((card, i) => {
-            const offset = (i - current) * STEP;
-            const isActive = i === current;
-            const distance = Math.abs(i - current);
-            const opacity = distance > 4 ? 0 : 1 - distance * 0.15;
+          const isActive = diff === 0;
+          // 重なり具合の計算
+          const offsetX = diff * 28;
+          const offsetY = absDiff * 4;
+          const scale = isActive ? 1 : Math.max(0.75, 1 - absDiff * 0.06);
+          const zIndex = isActive ? 30 : 20 - absDiff;
+          const opacity = absDiff > 4 ? 0 : 1 - absDiff * 0.1;
+          const rotate = diff * 2;
 
-            return (
-              <motion.div
-                key={card.id}
-                className="absolute cursor-pointer"
-                style={{ width: CARD_W, height: CARD_H }}
-                animate={{
-                  x: offset,
-                  scale: isActive ? 1.06 : 0.94,
-                  y: isActive ? -8 : 0,
-                  opacity,
-                  zIndex: isActive ? 20 : 10 - distance,
-                }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                onClick={() => {
-                  if (isActive) {
-                    playCardSelect();
-                    onSelect(card);
-                  } else {
-                    setCurrent(i);
-                  }
+          return (
+            <motion.div
+              key={card.id}
+              className="absolute cursor-pointer"
+              style={{ width: CARD_W, height: CARD_H, zIndex }}
+              animate={{ x: offsetX, y: offsetY, scale, opacity, rotate }}
+              transition={{ type: "spring", stiffness: 260, damping: 28 }}
+              onClick={() => {
+                if (isActive) {
+                  playCardSelect();
+                  onSelect(card);
+                } else {
+                  setCurrent(i);
+                }
+              }}
+            >
+              <div
+                className="relative w-full h-full rounded-2xl overflow-hidden flex items-center justify-center"
+                style={{
+                  background: "linear-gradient(135deg, #5C3D3D 0%, #7A4F4F 50%, #6B4545 100%)",
+                  border: `1px solid ${isActive ? "#C9A96E" : "#C9A96E44"}`,
+                  boxShadow: isActive
+                    ? "0 24px 48px #2C242055"
+                    : "0 4px 16px #2C242022",
                 }}
               >
-                <div
-                  className="relative w-full h-full rounded-2xl overflow-hidden flex items-center justify-center"
-                  style={{
-                    background: CARD_BG,
-                    border: `1px solid ${isActive ? "#C9A96E" : "#C9A96E33"}`,
-                    boxShadow: isActive
-                      ? "0 20px 48px #7A4F4F44, 0 0 0 1px #C9A96E22"
-                      : "0 4px 12px #2C242018",
-                  }}
-                >
-                  <CardPattern />
-                  <div className="relative z-10 text-center">
-                    {isActive ? (
-                      <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.15 }}
-                        className="text-xs tracking-[0.2em]"
-                        style={{ color: "#C9A96E", fontFamily: "Cormorant Garamond, serif", lineHeight: 1.8 }}
-                      >
-                        TAP TO<br />SELECT
-                      </motion.p>
-                    ) : (
-                      <p style={{ color: "#C9A96E22", fontSize: 10 }}>✦</p>
-                    )}
-                  </div>
+                <CardPattern />
+                <div className="relative z-10 text-center">
+                  {isActive ? (
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.15 }}
+                      className="text-xs tracking-[0.2em]"
+                      style={{ color: "#C9A96E", fontFamily: "Cormorant Garamond, serif", lineHeight: 1.8 }}
+                    >
+                      TAP TO<br />SELECT
+                    </motion.p>
+                  ) : (
+                    <p style={{ color: "#C9A96E22", fontSize: 10 }}>✦</p>
+                  )}
                 </div>
-              </motion.div>
-            );
-          })}
-        </div>
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
 
+      {/* PCナビゲーション */}
       <div className="hidden md:flex items-center gap-8">
         <button
           onClick={prev}
           disabled={current === 0}
-          className="w-10 h-10 rounded-full flex items-center justify-center transition-all"
+          className="w-10 h-10 rounded-full flex items-center justify-center"
           style={{
             border: "1px solid #C9A96E55",
             color: "#C9A96E",
@@ -372,7 +370,7 @@ function CardSlider({ cards, onSelect }: { cards: CardData[]; onSelect: (card: C
         <button
           onClick={next}
           disabled={current === shuffled.length - 1}
-          className="w-10 h-10 rounded-full flex items-center justify-center transition-all"
+          className="w-10 h-10 rounded-full flex items-center justify-center"
           style={{
             border: "1px solid #C9A96E55",
             color: "#C9A96E",
@@ -390,7 +388,6 @@ function CardSlider({ cards, onSelect }: { cards: CardData[]; onSelect: (card: C
     </div>
   );
 }
-
 // ============================================================
 // メインのデッキページ
 // ============================================================
