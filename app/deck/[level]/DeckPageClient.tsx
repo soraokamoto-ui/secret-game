@@ -11,8 +11,8 @@ const ACCESS_KEY = "sgd_access";
 
 const ACCESS_CODES: Record<number, string | null> = {
   12: null,
-  24: "VIP742",
-  36: "EXP891",
+  24: "28419",
+  36: "73652",
 };
 
 const levelLabels: Record<number, string> = {
@@ -22,9 +22,9 @@ const levelLabels: Record<number, string> = {
 };
 
 const deckNames: Record<number, string> = {
-  12: "First Light",
-  24: "Inner Flame",
-  36: "Full Bloom",
+  12: "VIP Access",
+  24: "Royal Access",
+  36: "The World Access",
 };
 
 const CARD_BG = "linear-gradient(135deg, #5C3D3D 0%, #7A4F4F 50%, #6B4545 100%)";
@@ -83,7 +83,7 @@ function AccessGate({
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleSubmit() {
-    if (code.toUpperCase() === ACCESS_CODES[level]) {
+    if (code === ACCESS_CODES[level]) {
       setStatus("success");
       unlockLevel(level);
       setTimeout(() => onUnlock(), 1800);
@@ -98,9 +98,8 @@ function AccessGate({
     }
   }
 
-  // inputの値を直接制御してiOSの干渉を防ぐ
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const val = e.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    const val = e.target.value.replace(/[^0-9]/g, "");
     setCode(val);
   }
 
@@ -170,24 +169,21 @@ function AccessGate({
             >
               <input
                 ref={inputRef}
-                type="text"
+                type="tel"
                 value={code}
                 onChange={handleChange}
-                placeholder="ACCESS CODE"
-                maxLength={10}
+                placeholder="5桁のコードを入力"
+                maxLength={5}
                 autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="characters"
-                spellCheck={false}
-                data-form-type="other"
-                className="text-center tracking-[0.3em] outline-none w-56 py-3 px-4 rounded-xl"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                className="text-center tracking-[0.4em] outline-none w-56 py-3 px-4 rounded-xl"
                 style={{
                   background: "#F5F0E8",
                   border: `1px solid ${status === "error" ? "#C94A4A" : "#C9A96E88"}`,
                   color: "#2C2420",
                   fontFamily: "Cormorant Garamond, serif",
-                  fontSize: 16,
-                  WebkitUserSelect: "text",
+                  fontSize: 20,
                 }}
               />
               {status === "error" && (
