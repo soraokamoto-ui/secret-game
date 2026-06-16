@@ -22,9 +22,9 @@ const levelLabels: Record<number, string> = {
 };
 
 const deckNames: Record<number, string> = {
-  12: "VIP Access",
-  24: "Royal Access",
-  36: "The World Access",
+  12: "First Light",
+  24: "Inner Flame",
+  36: "Full Bloom",
 };
 
 const CARD_BG = "linear-gradient(135deg, #5C3D3D 0%, #7A4F4F 50%, #6B4545 100%)";
@@ -80,6 +80,7 @@ function AccessGate({
   const [code, setCode] = useState("");
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [shake, setShake] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   function handleSubmit() {
     if (code.toUpperCase() === ACCESS_CODES[level]) {
@@ -95,6 +96,12 @@ function AccessGate({
         setCode("");
       }, 1200);
     }
+  }
+
+  // inputの値を直接制御してiOSの干渉を防ぐ
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    setCode(val);
   }
 
   const previewCards = cards.slice(0, 6);
@@ -161,28 +168,28 @@ function AccessGate({
               transition={{ duration: 0.5 }}
               className="flex flex-col items-center gap-4"
             >
-             <input
-             type="text"
-             value={code}
-             onChange={(e) => setCode(e.target.value.toUpperCase())}
-             onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-             placeholder="ACCESS CODE"
-             maxLength={10}
-             autoComplete="off"
-             autoCorrect="off"
-             autoCapitalize="none"
-             spellCheck={false}
-             inputMode="text"
-             className="text-center tracking-[0.3em] outline-none w-56 py-3 px-4 rounded-xl"
-             style={{
-              background: "#F5F0E8",
-              border: `1px solid ${status === "error" ? "#C94A4A" : "#C9A96E88"}`,
-              color: "#2C2420",
-              fontFamily: "Cormorant Garamond, serif",
-              fontSize: 16,
-              }}
+              <input
+                ref={inputRef}
+                type="text"
+                value={code}
+                onChange={handleChange}
+                placeholder="ACCESS CODE"
+                maxLength={10}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                data-form-type="other"
+                className="text-center tracking-[0.3em] outline-none w-56 py-3 px-4 rounded-xl"
+                style={{
+                  background: "#F5F0E8",
+                  border: `1px solid ${status === "error" ? "#C94A4A" : "#C9A96E88"}`,
+                  color: "#2C2420",
+                  fontFamily: "Cormorant Garamond, serif",
+                  fontSize: 16,
+                  WebkitUserSelect: "text",
+                }}
               />
-  
               {status === "error" && (
                 <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs tracking-widest" style={{ color: "#C94A4A" }}>
                   INVALID CODE
@@ -492,9 +499,7 @@ export default function DeckPageClient({ cards, level }: { cards: CardData[]; le
             {selectedCard && <Card card={selectedCard} isNew={isNew} />}
             {todayEntry && (
               <p className="text-xs" style={{ color: "#8B7355" }}>
-                {isNew
-                  ? ""
-                  : `今日のカード — ${new Date(todayEntry.drawnAt).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })} に選びました`}
+                {new Date(todayEntry.drawnAt).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })} に選びました
               </p>
             )}
             <motion.button
