@@ -225,8 +225,18 @@ function CardSlider({ cards, onSelect }: { cards: CardData[]; onSelect: (card: C
     return a;
   });
 
-  const [current, setCurrent] = useState(() => Math.floor(cards.length / 2));
+  const [angle, setAngle] = useState(0);
   const touchStartX = useRef<number | null>(null);
+  const isDragging = useRef(false);
+
+  const total = shuffled.length;
+  const CARD_W = 140;
+  const CARD_H = 210;
+  const RADIUS = 320; // 円の半径
+  const degPerCard = 360 / total;
+
+  // 現在中央に来ているカードのindex
+  const currentIndex = ((Math.round(-angle / degPerCard) % total) + total) % total;
 
   function playSlide() {
     try {
@@ -246,24 +256,44 @@ function CardSlider({ cards, onSelect }: { cards: CardData[]; onSelect: (card: C
     } catch { /* ignore */ }
   }
 
-  function prev() { playSlide(); setCurrent((i) => Math.max(0, i - 1)); }
-  function next() { playSlide(); setCurrent((i) => Math.min(shuffled.length - 1, i + 1)); }
+  function rotateTo(targetIndex: number) {
+    playSlide();
+    setAngle(-targetIndex * degPerCard);
+  }
+
+  function prev() {
+    const next = ((currentIndex - 1) + total) % total;
+    rotateTo(next);
+  }
+
+  function next() {
+    const n = (currentIndex + 1) % total;
+    rotateTo(n);
+  }
 
   function onTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
+    isDragging.current = false;
+  }
+
+  function onTouchMove(e: React.TouchEvent) {
+    if (touchStartX.current === null) return;
+    const diff = Math.abs(touchStartX.current - e.touches[0].clientX);
+    if (diff > 10) {
+      isDragging.current = true;
+      e.stopPropagation();
+    }
   }
 
   function onTouchEnd(e: React.TouchEvent) {
     if (touchStartX.current === null) return;
     const diffX = touchStartX.current - e.changedTouches[0].clientX;
-    if (diffX > 40) next();
-    else if (diffX < -40) prev();
+    if (Math.abs(diffX) > 40) {
+      if (diffX > 0) next();
+      else prev();
+    }
     touchStartX.current = null;
   }
-
-  const CARD_W = 200;
-  const CARD_H = 300;
-  const OVERLAP = 24; // 重なり量
 
   return (
     <div className="flex flex-col items-center gap-8 w-full">
@@ -275,101 +305,110 @@ function CardSlider({ cards, onSelect }: { cards: CardData[]; onSelect: (card: C
         心に浮かぶカードを選んでください。
       </p>
 
-      {/* カードデッキ */}
+      {/* 円形カルーセルエリア */}
       <div
-        className="relative w-full flex items-center justify-center"
-        style={{ height: CARD_H + 40 }}
+        className="relative flex items-center justify-center overflow-hidden w-full"
+        style={{ height: 360, touchAction: "pan-y" }}
         onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
-        {shuffled.map((card, i) => {
-          const diff = i - current;
-          const absDiff = Math.abs(diff);
-          if (absDiff > 6) return null;
+        <div
+          style={{
+            position: "relative",
+            width: CARD_W,
+            height: CARD_H,
+            transformStyle: "preserve-3d",
+            perspective: 1000,
+          }}
+        >
+          {shuffled.map((card, i) => {
+            const cardAngle = angle + i * degPerCard;
+            const rad = (cardAngle * Math.PI) / 180;
+            const x = Math.sin(rad) * RADIUS;
+            const z = Math.cos(rad) * RADIUS - RADIUS;
+            const isActive = i === currentIndex;
 
-          const isActive = diff === 0;
-          // 真横のみオフセット、傾き・縦移動なし
-          const offsetX = diff * OVERLAP;
-          const zIndex = isActive ? 30 : 20 - absDiff;
+            // 前面にあるカードほど明るく、奥は暗く
+            const normalizedZ = (Math.cos(rad) + 1) / 2;
+            const brightness = 0.4 + normalizedZ * 0.6;
 
-          return (
-            <motion.div
-              key={card.id}
-              className="absolute cursor-pointer"
-              style={{ width: CARD_W, height: CARD_H, zIndex }}
-              animate={{
-                x: offsetX,
-                y: isActive ? -10 : 0,
-                scale: isActive ? 1.04 : 1,
-              }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              onClick={() => {
-                if (isActive) {
-                  playCardSelect();
-                  onSelect(card);
-                } else {
-                  setCurrent(i);
-                }
-              }}
-            >
-              <div
-                className="relative w-full h-full rounded-2xl overflow-hidden flex items-center justify-center"
+            return (
+              <motion.div
+                key={card.id}
+                className="absolute cursor-pointer"
                 style={{
-                  background: "linear-gradient(135deg, #5C3D3D 0%, #7A4F4F 50%, #6B4545 100%)",
-                  border: `1px solid ${isActive ? "#C9A96E" : "#C9A96E44"}`,
-                  boxShadow: isActive
-                    ? "0 24px 48px #2C242055"
-                    : "0 4px 16px #2C242022",
+                  width: CARD_W,
+                  height: CARD_H,
+                  left: "50%",
+                  top: "50%",
+                  marginLeft: -CARD_W / 2,
+                  marginTop: -CARD_H / 2,
+                }}
+                animate={{
+                  x,
+                  z,
+                  scale: isActive ? 1.12 : 0.85 + normalizedZ * 0.1,
+                  filter: `brightness(${isActive ? 1 : brightness})`,
+                  zIndex: Math.round(normalizedZ * 100),
+                }}
+                transition={{ type: "spring", stiffness: 200, damping: 25 }}
+                onClick={() => {
+                  if (isActive) {
+                    playCardSelect();
+                    onSelect(card);
+                  } else {
+                    rotateTo(i);
+                  }
                 }}
               >
-                <CardPattern />
-                <div className="relative z-10 text-center">
-                  {isActive ? (
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.1 }}
-                      className="text-xs tracking-[0.2em]"
-                      style={{ color: "#C9A96E", fontFamily: "Cormorant Garamond, serif", lineHeight: 1.8 }}
-                    >
-                      TAP TO<br />SELECT
-                    </motion.p>
-                  ) : (
-                    <p style={{ color: "#C9A96E22", fontSize: 10 }}>✦</p>
-                  )}
+                <div
+                  className="relative w-full h-full rounded-2xl overflow-hidden flex items-center justify-center"
+                  style={{
+                    background: "linear-gradient(135deg, #5C3D3D 0%, #7A4F4F 50%, #6B4545 100%)",
+                    border: `1px solid ${isActive ? "#C9A96E" : "#C9A96E33"}`,
+                    boxShadow: isActive
+                      ? "0 24px 48px #2C242066"
+                      : "0 4px 16px #2C242022",
+                  }}
+                >
+                  <CardPattern />
+                  <div className="relative z-10 text-center">
+                    {isActive ? (
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.1 }}
+                        className="text-xs tracking-[0.2em]"
+                        style={{ color: "#C9A96E", fontFamily: "Cormorant Garamond, serif", lineHeight: 1.8 }}
+                      >
+                        TAP TO<br />SELECT
+                      </motion.p>
+                    ) : (
+                      <p style={{ color: "#C9A96E22", fontSize: 10 }}>✦</p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          );
-        })}
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
 
       {/* PCナビゲーション */}
       <div className="hidden md:flex items-center gap-8">
         <button
           onClick={prev}
-          disabled={current === 0}
           className="w-10 h-10 rounded-full flex items-center justify-center"
-          style={{
-            border: "1px solid #C9A96E55",
-            color: "#C9A96E",
-            opacity: current === 0 ? 0.25 : 1,
-            fontSize: 20,
-          }}
+          style={{ border: "1px solid #C9A96E55", color: "#C9A96E", fontSize: 20 }}
         >
           ‹
         </button>
         <p className="text-xs tracking-widest" style={{ color: "#C9A96E55" }}>✦</p>
         <button
           onClick={next}
-          disabled={current === shuffled.length - 1}
           className="w-10 h-10 rounded-full flex items-center justify-center"
-          style={{
-            border: "1px solid #C9A96E55",
-            color: "#C9A96E",
-            opacity: current === shuffled.length - 1 ? 0.25 : 1,
-            fontSize: 20,
-          }}
+          style={{ border: "1px solid #C9A96E55", color: "#C9A96E", fontSize: 20 }}
         >
           ›
         </button>
