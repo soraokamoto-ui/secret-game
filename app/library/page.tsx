@@ -53,11 +53,8 @@ export default function LibraryPage() {
   const weeks = WEEKS.map((week, wi) => {
     const start = wi * 6;
     const end = start + 6;
-    const weekUnlocked = unlockedCards.slice(start, end);
-    const weekLocked = lockedCards.filter((_, li) => {
-      const globalIndex = visibleCount + li;
-      return globalIndex >= start && globalIndex < end;
-    });
+    const weekUnlocked = unlockedCards.filter((c) => c.id > start && c.id <= end);
+    const weekLocked = lockedCards.filter((c) => c.id > start && c.id <= end);
     return { ...week, unlocked: weekUnlocked, locked: weekLocked };
   }).filter((w) => w.unlocked.length > 0 || w.locked.length > 0);
 
@@ -69,23 +66,14 @@ export default function LibraryPage() {
       {/* ヘッダー */}
       <div className="max-w-5xl mx-auto mb-12">
         <div className="flex items-center justify-between mb-6">
-          <Link
-            href="/"
-            className="text-xs tracking-widest hover:opacity-50 transition-opacity"
-            style={{ color: "#8B7355" }}
-          >
+          <Link href="/" className="text-xs tracking-widest hover:opacity-50 transition-opacity" style={{ color: "#8B7355" }}>
             ← HOME
           </Link>
-          <p className="text-xs tracking-[0.4em]" style={{ color: "#C9A96E" }}>
-            CARD LIBRARY
-          </p>
+          <p className="text-xs tracking-[0.4em]" style={{ color: "#C9A96E" }}>CARD LIBRARY</p>
           <div className="w-16" />
         </div>
         <div className="text-center">
-          <h1
-            className="text-4xl font-light mb-2"
-            style={{ color: "#2C2420", fontFamily: "Cormorant Garamond, serif" }}
-          >
+          <h1 className="text-4xl font-light mb-2" style={{ color: "#2C2420", fontFamily: "Cormorant Garamond, serif" }}>
             All Cards
           </h1>
           <p className="text-sm" style={{ color: "#8B7355" }}>
@@ -96,9 +84,7 @@ export default function LibraryPage() {
 
       {loading ? (
         <div className="flex justify-center py-20">
-          <p className="text-sm tracking-widest" style={{ color: "#8B7355" }}>
-            Loading...
-          </p>
+          <p className="text-sm tracking-widest" style={{ color: "#8B7355" }}>Loading...</p>
         </div>
       ) : (
         <div className="max-w-5xl mx-auto space-y-16">
@@ -109,37 +95,61 @@ export default function LibraryPage() {
 
             return (
               <div key={week.key}>
-                {/* weekヘッダー */}
-                <div className="flex items-center gap-4 mb-8">
+                {/* weekヘッダー：sticky でスクロール中も固定 */}
+                <div
+                  className="flex items-center gap-4 mb-8"
+                  style={{
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 10,
+                    background: "linear-gradient(160deg, #EDE8E0 0%, #E0D8CC 100%)",
+                    paddingTop: 8,
+                    paddingBottom: 8,
+                  }}
+                >
                   <div className="flex-1 h-px" style={{ background: "#C9A96E33" }} />
                   <div className="text-center px-2">
                     <p className="text-xs tracking-widest mb-1" style={{ color: "#C9A96E" }}>
                       {week.stage}
                     </p>
-                    <p
-                      className="text-xl font-light"
-                      style={{ color: "#2C2420", fontFamily: "Cormorant Garamond, serif", letterSpacing: "0.05em" }}
-                    >
+                    <p className="text-xl font-light" style={{ color: "#2C2420", fontFamily: "Cormorant Garamond, serif", letterSpacing: "0.05em" }}>
                       {week.label}
                     </p>
                   </div>
                   <div className="flex-1 h-px" style={{ background: "#C9A96E33" }} />
                 </div>
 
-                {/* 6枚グリッド */}
-                <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(6, 1fr)" }}>
+                {/* カードグリッド：PC 6列、スマホ 3列 */}
+                <div
+                  className="grid gap-3"
+                  style={{
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                  }}
+                >
+                  {/* PC では6列 */}
+                  <style>{`
+                    @media (min-width: 768px) {
+                      .card-grid-${week.key} {
+                        grid-template-columns: repeat(6, 1fr) !important;
+                      }
+                    }
+                  `}</style>
+
+                  {/* 解放済みカード */}
                   {week.unlocked.map((card) => (
                     <div key={card.id} className="flex justify-center">
                       <Card card={card} popupMode={true} />
                     </div>
                   ))}
+
+                  {/* ロック済みカード：解放済みと同じサイズ */}
                   {Array.from({ length: lockedCount }).map((_, li) => (
                     <div key={`locked-${week.key}-${li}`} className="flex justify-center">
                       <div
-                        className="relative rounded-2xl overflow-hidden w-full"
+                        className="relative rounded-2xl overflow-hidden"
                         style={{
-                          aspectRatio: "2/3",
-                          maxWidth: 160,
+                          width: 160,
+                          height: 240,
                           background: "linear-gradient(135deg, #E8DDD0, #C9A96E22)",
                           border: "1px solid #C9A96E22",
                         }}
@@ -149,10 +159,7 @@ export default function LibraryPage() {
                           style={{ background: "#F5F0E844" }}
                         >
                           <span style={{ color: "#C9A96E44", fontSize: 20 }}>✦</span>
-                          <p
-                            className="text-xs tracking-widest"
-                            style={{ color: "#C9A96E44", fontFamily: "Cormorant Garamond, serif" }}
-                          >
+                          <p className="text-xs tracking-widest" style={{ color: "#C9A96E44", fontFamily: "Cormorant Garamond, serif" }}>
                             LOCKED
                           </p>
                         </div>
@@ -164,7 +171,6 @@ export default function LibraryPage() {
             );
           })}
 
-          {/* 次のステージへの導線：36枚解放済みの場合は表示しない */}
           {visibleCount < 36 && (
             <div className="text-center py-8">
               <div className="flex items-center gap-4 mb-6">

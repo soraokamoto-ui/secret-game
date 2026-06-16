@@ -172,18 +172,18 @@ function AccessGate({
                 type="tel"
                 value={code}
                 onChange={handleChange}
-                placeholder="5桁のコードを入力"
+                placeholder="ACCESS CODE"
                 maxLength={5}
                 autoComplete="off"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                className="text-center tracking-[0.4em] outline-none w-56 py-3 px-4 rounded-xl"
+                className="text-center tracking-[0.3em] outline-none w-56 py-3 px-4 rounded-xl"
                 style={{
                   background: "#F5F0E8",
                   border: `1px solid ${status === "error" ? "#C94A4A" : "#C9A96E88"}`,
                   color: "#2C2420",
                   fontFamily: "Cormorant Garamond, serif",
-                  fontSize: 20,
+                  fontSize: 16,
                 }}
               />
               {status === "error" && (

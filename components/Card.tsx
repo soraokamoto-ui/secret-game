@@ -69,6 +69,48 @@ function playPopupOpen() {
   });
 }
 
+function playSpinReveal() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  const bufferSize = ctx.sampleRate * 0.6;
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * 0.015;
+  }
+  const noise = ctx.createBufferSource();
+  noise.buffer = buffer;
+  const noiseFilter = ctx.createBiquadFilter();
+  noiseFilter.type = "bandpass";
+  noiseFilter.frequency.setValueAtTime(800, ctx.currentTime);
+  noiseFilter.frequency.exponentialRampToValueAtTime(3200, ctx.currentTime + 0.55);
+  noiseFilter.Q.value = 3;
+  const noiseGain = ctx.createGain();
+  noiseGain.gain.setValueAtTime(0.0, ctx.currentTime);
+  noiseGain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.1);
+  noiseGain.gain.linearRampToValueAtTime(0.0, ctx.currentTime + 0.6);
+  noise.connect(noiseFilter);
+  noiseFilter.connect(noiseGain);
+  noiseGain.connect(ctx.destination);
+  noise.start(ctx.currentTime);
+  noise.stop(ctx.currentTime + 0.6);
+  const chimeFreqs = [1047, 1319, 1568, 2093];
+  chimeFreqs.forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    const startTime = ctx.currentTime + 0.58 + i * 0.04;
+    gain.gain.setValueAtTime(0.0, startTime);
+    gain.gain.linearRampToValueAtTime(0.07, startTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.4);
+    osc.start(startTime);
+    osc.stop(startTime + 0.4);
+  });
+}
+
 // ============================================================
 // 型定義
 // ============================================================
@@ -84,13 +126,7 @@ interface CardProps {
 // ============================================================
 function SpinRevealCard({ imageUrl, name }: { imageUrl: string; name: string }) {
   return (
-    <div
-      style={{
-        width: "100%",
-        aspectRatio: "827/1181",
-        perspective: 800,
-      }}
-    >
+    <div style={{ width: "100%", aspectRatio: "827/1181", perspective: 800 }}>
       <motion.div
         style={{
           width: "100%",
@@ -100,68 +136,49 @@ function SpinRevealCard({ imageUrl, name }: { imageUrl: string; name: string }) 
         }}
         initial={{ rotateY: 900 }}
         animate={{ rotateY: 0 }}
-        transition={{
-          duration: 0.7,
-          ease: [0.15, 0.85, 0.35, 1.1],
-        }}
+        transition={{ duration: 0.7, ease: [0.15, 0.85, 0.35, 1.1] }}
+        onAnimationStart={() => playSpinReveal()}
       >
-        {/* 表面（画像） */}
+        {/* 表面 */}
         <div
           style={{
             position: "absolute",
             inset: 0,
             backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
             borderRadius: 16,
             overflow: "hidden",
             boxShadow: "0 8px 32px #2C242033",
           }}
         >
           {imageUrl ? (
-            <Image
-              src={imageUrl}
-              alt={name}
-              fill
-              className="object-contain"
-              unoptimized
-            />
+            <Image src={imageUrl} alt={name} fill className="object-contain" unoptimized />
           ) : (
-            <div
-              style={{
-                width: "100%",
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "linear-gradient(135deg, #E8DDD0, #C9A96E22)",
-              }}
-            >
+            <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #E8DDD0, #C9A96E22)" }}>
               <span style={{ color: "#C9A96E", fontSize: 64 }}>✦</span>
             </div>
           )}
-
-          {/* キラッと光るオーバーレイ */}
           <motion.div
             initial={{ opacity: 1, x: "-100%" }}
             animate={{ opacity: 0, x: "150%" }}
-            transition={{ duration: 0.45, delay: 0.5, ease: "easeOut" }}
+            transition={{ duration: 0.45, delay: 0.58, ease: "easeOut" }}
             style={{
               position: "absolute",
               inset: 0,
-              background: "linear-gradient(105deg, transparent 30%, #ffffff88 50%, transparent 70%)",
+              background: "linear-gradient(105deg, transparent 30%, #ffffff99 50%, transparent 70%)",
               pointerEvents: "none",
             }}
           />
         </div>
-
-        {/* 裏面（スピン中に見える面） */}
+        {/* 裏面 */}
         <div
           style={{
             position: "absolute",
             inset: 0,
             backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
             transform: "rotateY(180deg)",
             borderRadius: 16,
-            overflow: "hidden",
             background: "linear-gradient(135deg, #5C3D3D 0%, #7A4F4F 50%, #6B4545 100%)",
             boxShadow: "0 8px 32px #2C242033",
           }}
@@ -230,7 +247,6 @@ export default function Card({
                   boxShadow: "0 32px 80px #2C242055, 0 0 0 1px #C9A96E22",
                 }}
               >
-                {/* 画像エリア：Y軸スピン演出 */}
                 <div
                   className="flex items-center justify-center"
                   style={{
@@ -241,14 +257,12 @@ export default function Card({
                   <SpinRevealCard imageUrl={card.imageUrl} name={card.name} />
                 </div>
 
-                {/* 区切り */}
                 <div className="flex items-center gap-3 px-6">
                   <div className="flex-1 h-px" style={{ background: "#C9A96E33" }} />
                   <span style={{ color: "#C9A96E", fontSize: 8 }}>✦</span>
                   <div className="flex-1 h-px" style={{ background: "#C9A96E33" }} />
                 </div>
 
-                {/* テキストエリア */}
                 <div className="overflow-y-auto px-6 pb-8 pt-4 space-y-4" style={{ maxHeight: 280 }}>
                   <CardInfo card={card} />
                   <Divider />
@@ -258,7 +272,6 @@ export default function Card({
                 </div>
               </div>
 
-              {/* 閉じるボタン */}
               <button
                 className="absolute -top-4 -right-4 w-9 h-9 rounded-full flex items-center justify-center transition-opacity hover:opacity-70"
                 style={{
@@ -301,6 +314,7 @@ export default function Card({
             className="absolute inset-0 rounded-2xl flex items-center justify-center"
             style={{
               backfaceVisibility: "hidden",
+              WebkitBackfaceVisibility: "hidden",
               background: "linear-gradient(135deg, #5C3D3D 0%, #7A4F4F 50%, #6B4545 100%)",
               border: "1px solid #C9A96E",
             }}
@@ -313,6 +327,7 @@ export default function Card({
             className="absolute inset-0 rounded-2xl overflow-hidden"
             style={{
               backfaceVisibility: "hidden",
+              WebkitBackfaceVisibility: "hidden",
               transform: "rotateY(180deg)",
               border: "1px solid #C9A96E",
             }}
@@ -354,10 +369,7 @@ export default function Card({
 function CardInfo({ card }: { card: CardData }) {
   return (
     <div className="text-center space-y-1">
-      <p
-        className="text-xl font-light"
-        style={{ color: "#2C2420", fontFamily: "Cormorant Garamond, serif", letterSpacing: "0.05em" }}
-      >
+      <p className="text-xl font-light" style={{ color: "#2C2420", fontFamily: "Cormorant Garamond, serif", letterSpacing: "0.05em" }}>
         {card.name}
       </p>
       {card.sign && (
