@@ -131,7 +131,6 @@ export default function LibraryPage() {
                 <div
                   className="flex items-center gap-4 mb-8"
                   style={{
-                    position: "sticky",
                     top: 0,
                     zIndex: 10,
                     paddingTop: 12,
