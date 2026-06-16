@@ -139,7 +139,6 @@ function SpinRevealCard({ imageUrl, name }: { imageUrl: string; name: string }) 
         transition={{ duration: 0.7, ease: [0.15, 0.85, 0.35, 1.1] }}
         onAnimationStart={() => playSpinReveal()}
       >
-        {/* 表面 */}
         <div
           style={{
             position: "absolute",
@@ -170,7 +169,6 @@ function SpinRevealCard({ imageUrl, name }: { imageUrl: string; name: string }) 
             }}
           />
         </div>
-        {/* 裏面 */}
         <div
           style={{
             position: "absolute",
@@ -203,7 +201,6 @@ export default function Card({
   if (popupMode) {
     return (
       <>
-        {/* サムネイル */}
         <div
           className="relative cursor-pointer rounded-2xl overflow-hidden flex-shrink-0"
           style={{ width: 160, height: 240, border: "1px solid #C9A96E55" }}
@@ -223,7 +220,6 @@ export default function Card({
           </div>
         </div>
 
-        {/* ポップアップ */}
         {popup && (
           <motion.div
             className="fixed inset-0 z-50 flex items-center justify-center px-6"
@@ -256,13 +252,11 @@ export default function Card({
                 >
                   <SpinRevealCard imageUrl={card.imageUrl} name={card.name} />
                 </div>
-
                 <div className="flex items-center gap-3 px-6">
                   <div className="flex-1 h-px" style={{ background: "#C9A96E33" }} />
                   <span style={{ color: "#C9A96E", fontSize: 8 }}>✦</span>
                   <div className="flex-1 h-px" style={{ background: "#C9A96E33" }} />
                 </div>
-
                 <div className="overflow-y-auto px-6 pb-8 pt-4 space-y-4" style={{ maxHeight: 280 }}>
                   <CardInfo card={card} />
                   <Divider />
@@ -271,7 +265,6 @@ export default function Card({
                   <Section label="Question" text={card.question} italic />
                 </div>
               </div>
-
               <button
                 className="absolute -top-4 -right-4 w-9 h-9 rounded-full flex items-center justify-center transition-opacity hover:opacity-70"
                 style={{
@@ -292,54 +285,50 @@ export default function Card({
     );
   }
 
-  // 通常のデッキモード
+  // ============================================================
+  // 通常デッキモード：iOSのbackface問題をstateで完全回避
+  // ============================================================
   return (
     <div className="flex flex-col items-center gap-6">
       <div
-        className="relative cursor-pointer"
-        style={{ width: 280, height: 420, perspective: 1200 }}
+        className="relative cursor-pointer rounded-2xl overflow-hidden"
+        style={{ width: 280, height: 420 }}
         onClick={() => { playCardFlip(); setFlipped((f) => !f); }}
         role="button"
         aria-label={flipped ? card.name : "カードをめくる"}
         tabIndex={0}
         onKeyDown={(e) => e.key === "Enter" && setFlipped((f) => !f)}
       >
+        {/* 裏面 */}
         <motion.div
-          style={{ width: "100%", height: "100%", transformStyle: "preserve-3d" }}
-          animate={{ rotateY: flipped ? 180 : 0 }}
-          transition={{ duration: 0.7, ease: [0.43, 0.13, 0.23, 0.96] }}
+          className="absolute inset-0 rounded-2xl"
+          animate={{ opacity: flipped ? 0 : 1, rotateY: flipped ? -180 : 0 }}
+          transition={{ duration: 0.6, ease: [0.43, 0.13, 0.23, 0.96] }}
+          style={{
+            background: "linear-gradient(135deg, #5C3D3D 0%, #7A4F4F 50%, #6B4545 100%)",
+            border: "1px solid #C9A96E",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
         >
-          {/* 裏面 */}
-          <div
-            className="absolute inset-0 rounded-2xl flex items-center justify-center"
-            style={{
-              backfaceVisibility: "hidden",
-              WebkitBackfaceVisibility: "hidden",
-              background: "linear-gradient(135deg, #5C3D3D 0%, #7A4F4F 50%, #6B4545 100%)",
-              border: "1px solid #C9A96E",
-            }}
-          >
-            <CardBack isNew={isNew} />
-          </div>
+          <CardBack isNew={isNew} />
+        </motion.div>
 
-          {/* 表面 */}
-          <div
-            className="absolute inset-0 rounded-2xl overflow-hidden"
-            style={{
-              backfaceVisibility: "hidden",
-              WebkitBackfaceVisibility: "hidden",
-              transform: "rotateY(180deg)",
-              border: "1px solid #C9A96E",
-            }}
-          >
-            {card.imageUrl ? (
-              <Image src={card.imageUrl} alt={card.name} fill className="object-cover" unoptimized />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center" style={{ background: "linear-gradient(135deg, #E8DDD0, #C9A96E22)" }}>
-                <span style={{ color: "#C9A96E", fontSize: 64 }}>✦</span>
-              </div>
-            )}
-          </div>
+        {/* 表面 */}
+        <motion.div
+          className="absolute inset-0 rounded-2xl overflow-hidden"
+          animate={{ opacity: flipped ? 1 : 0, rotateY: flipped ? 0 : 180 }}
+          transition={{ duration: 0.6, ease: [0.43, 0.13, 0.23, 0.96] }}
+          style={{ border: "1px solid #C9A96E" }}
+        >
+          {card.imageUrl ? (
+            <Image src={card.imageUrl} alt={card.name} fill className="object-cover" unoptimized />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center" style={{ background: "linear-gradient(135deg, #E8DDD0, #C9A96E22)" }}>
+              <span style={{ color: "#C9A96E", fontSize: 64 }}>✦</span>
+            </div>
+          )}
         </motion.div>
       </div>
 
