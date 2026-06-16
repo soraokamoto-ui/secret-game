@@ -134,15 +134,8 @@ export default function LibraryPage() {
                     position: "sticky",
                     top: 0,
                     zIndex: 10,
-                    paddingTop: 8,
-                    paddingBottom: 8,
-                    marginLeft: -16,
-                    marginRight: -16,
-                    paddingLeft: 16,
-                    paddingRight: 16,
-                    backdropFilter: "blur(12px)",
-                    WebkitBackdropFilter: "blur(12px)",
-                    background: "linear-gradient(160deg, #EDE8E0 0%, #E0D8CC 100%)",
+                    paddingTop: 12,
+                    paddingBottom: 12,
                   }}
                 >
                   <div className="flex-1 h-px" style={{ background: "#C9A96E33" }} />
