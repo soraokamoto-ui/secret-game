@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import Image from "next/image";
-import { createPortal } from "react-dom";
 import { CardData } from "@/types/card";
 
 // ============================================================
@@ -188,76 +187,6 @@ function SpinRevealCard({ imageUrl, name }: { imageUrl: string; name: string }) 
 }
 
 // ============================================================
-// ポップアップ（Portal経由でbody直下に描画）
-// ============================================================
-function CardPopup({ card, onClose }: { card: CardData; onClose: () => void }) {
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
-    <motion.div
-      className="fixed inset-0 z-[9999] flex items-center justify-center px-6"
-      style={{ background: "#2C242077" }}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      onClick={onClose}
-    >
-      <motion.div
-        className="relative w-full max-w-xs"
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div
-          className="rounded-3xl overflow-hidden"
-          style={{
-            background: "#F5F0E8",
-            border: "1px solid #C9A96E88",
-            boxShadow: "0 32px 80px #2C242055, 0 0 0 1px #C9A96E22",
-          }}
-        >
-          <div
-            className="flex items-center justify-center"
-            style={{
-              background: "linear-gradient(160deg, #F5F0E8 0%, #EDE8E0 100%)",
-              padding: "24px 24px 16px",
-            }}
-          >
-            <SpinRevealCard imageUrl={card.imageUrl} name={card.name} />
-          </div>
-          <div className="flex items-center gap-3 px-6">
-            <div className="flex-1 h-px" style={{ background: "#C9A96E33" }} />
-            <span style={{ color: "#C9A96E", fontSize: 8 }}>✦</span>
-            <div className="flex-1 h-px" style={{ background: "#C9A96E33" }} />
-          </div>
-          <div className="overflow-y-auto px-6 pb-8 pt-4 space-y-4" style={{ maxHeight: 280 }}>
-            <CardInfo card={card} />
-            <Divider />
-            <Section label="Secret Message" text={card.secretMessage} highlight />
-            <Section label="Mission" text={card.mission} />
-            <Section label="Question" text={card.question} italic />
-          </div>
-        </div>
-        <button
-          className="absolute -top-4 -right-4 w-9 h-9 rounded-full flex items-center justify-center transition-opacity hover:opacity-70"
-          style={{
-            background: "#2C2420",
-            color: "#C9A96E",
-            fontSize: 16,
-            border: "1px solid #C9A96E44",
-            boxShadow: "0 4px 12px #2C242044",
-          }}
-          onClick={onClose}
-        >
-          ×
-        </button>
-      </motion.div>
-    </motion.div>,
-    document.body
-  );
-}
-
-// ============================================================
 // メインコンポーネント
 // ============================================================
 export default function Card({
@@ -291,18 +220,78 @@ export default function Card({
           </div>
         </div>
 
-        <AnimatePresence>
-          {popup && <CardPopup card={card} onClose={() => setPopup(false)} />}
-        </AnimatePresence>
+        {popup && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center px-6"
+            style={{ background: "#2C242077" }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            onClick={() => setPopup(false)}
+          >
+            <motion.div
+              className="relative w-full max-w-xs"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                className="rounded-3xl overflow-hidden"
+                style={{
+                  background: "#F5F0E8",
+                  border: "1px solid #C9A96E88",
+                  boxShadow: "0 32px 80px #2C242055, 0 0 0 1px #C9A96E22",
+                }}
+              >
+                <div
+                  className="flex items-center justify-center"
+                  style={{
+                    background: "linear-gradient(160deg, #F5F0E8 0%, #EDE8E0 100%)",
+                    padding: "24px 24px 16px",
+                  }}
+                >
+                  <SpinRevealCard imageUrl={card.imageUrl} name={card.name} />
+                </div>
+                <div className="flex items-center gap-3 px-6">
+                  <div className="flex-1 h-px" style={{ background: "#C9A96E33" }} />
+                  <span style={{ color: "#C9A96E", fontSize: 8 }}>✦</span>
+                  <div className="flex-1 h-px" style={{ background: "#C9A96E33" }} />
+                </div>
+                <div className="overflow-y-auto px-6 pb-8 pt-4 space-y-4" style={{ maxHeight: 280 }}>
+                  <CardInfo card={card} />
+                  <Divider />
+                  <Section label="Secret Message" text={card.secretMessage} highlight />
+                  <Section label="Mission" text={card.mission} />
+                  <Section label="Question" text={card.question} italic />
+                </div>
+              </div>
+              <button
+                className="absolute -top-4 -right-4 w-9 h-9 rounded-full flex items-center justify-center transition-opacity hover:opacity-70"
+                style={{
+                  background: "#2C2420",
+                  color: "#C9A96E",
+                  fontSize: 16,
+                  border: "1px solid #C9A96E44",
+                  boxShadow: "0 4px 12px #2C242044",
+                }}
+                onClick={() => setPopup(false)}
+              >
+                ×
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
       </>
     );
   }
 
-  // 通常デッキモード
+  // ============================================================
+  // 通常デッキモード：iOSのbackface問題をstateで完全回避
+  // ============================================================
   return (
     <div className="flex flex-col items-center gap-6">
       <div
-        className="relative cursor-pointer rounded-2xl"
+        className="relative cursor-pointer rounded-2xl overflow-hidden"
         style={{ width: 280, height: 420 }}
         onClick={() => { playCardFlip(); setFlipped((f) => !f); }}
         role="button"
@@ -310,36 +299,28 @@ export default function Card({
         tabIndex={0}
         onKeyDown={(e) => e.key === "Enter" && setFlipped((f) => !f)}
       >
-        {/* 裏面：常に表示、めくったら隠す */}
+        {/* 裏面 */}
         <motion.div
-          className="absolute inset-0 rounded-2xl flex items-center justify-center"
+          className="absolute inset-0 rounded-2xl"
+          animate={{ opacity: flipped ? 0 : 1, rotateY: flipped ? -180 : 0 }}
+          transition={{ duration: 0.6, ease: [0.43, 0.13, 0.23, 0.96] }}
           style={{
             background: "linear-gradient(135deg, #5C3D3D 0%, #7A4F4F 50%, #6B4545 100%)",
             border: "1px solid #C9A96E",
-            zIndex: flipped ? 0 : 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
-          animate={{
-            rotateY: flipped ? -90 : 0,
-            opacity: flipped ? 0 : 1,
-          }}
-          transition={{ duration: 0.3, ease: "easeIn" }}
         >
           <CardBack isNew={isNew} />
         </motion.div>
 
-        {/* 表面：めくった後だけ表示 */}
+        {/* 表面 */}
         <motion.div
           className="absolute inset-0 rounded-2xl overflow-hidden"
-          style={{
-            border: "1px solid #C9A96E",
-            zIndex: flipped ? 1 : 0,
-          }}
-          initial={{ rotateY: 90, opacity: 0 }}
-          animate={{
-            rotateY: flipped ? 0 : 90,
-            opacity: flipped ? 1 : 0,
-          }}
-          transition={{ duration: 0.3, ease: "easeOut", delay: flipped ? 0.25 : 0 }}
+          animate={{ opacity: flipped ? 1 : 0, rotateY: flipped ? 0 : 180 }}
+          transition={{ duration: 0.6, ease: [0.43, 0.13, 0.23, 0.96] }}
+          style={{ border: "1px solid #C9A96E" }}
         >
           {card.imageUrl ? (
             <Image src={card.imageUrl} alt={card.name} fill className="object-cover" unoptimized />
@@ -352,24 +333,21 @@ export default function Card({
       </div>
 
       {/* カード下テキスト */}
-      <AnimatePresence>
-        {flipped && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="w-full space-y-4"
-            style={{ maxWidth: 280 }}
-          >
-            <CardInfo card={card} />
-            <Divider />
-            <Section label="Secret Message" text={card.secretMessage} highlight />
-            <Section label="Mission" text={card.mission} />
-            <Section label="Question" text={card.question} italic />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {flipped && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="w-full space-y-4"
+          style={{ maxWidth: 280 }}
+        >
+          <CardInfo card={card} />
+          <Divider />
+          <Section label="Secret Message" text={card.secretMessage} highlight />
+          <Section label="Mission" text={card.mission} />
+          <Section label="Question" text={card.question} italic />
+        </motion.div>
+      )}
     </div>
   );
 }
@@ -451,6 +429,7 @@ function Section({ label, text, highlight, italic }: {
           fontStyle: italic ? "italic" : "normal",
           fontFamily: "'Zen Kaku Gothic New', sans-serif",
           fontWeight: highlight ? 500 : 400,
+          whiteSpace: "pre-line",
         }}
       >
         {text}
