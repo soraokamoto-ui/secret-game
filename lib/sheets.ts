@@ -3,39 +3,73 @@ import { CardData } from "@/types/card";
 const CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vQm7hU-U6_8wW_TJLyDZuS9IMdbjF_WiguVCcHr7dUArcqWgIY4kmAdB-gTQjWq0jE0k3-cKZ_y4_jF/pub?output=csv";
 
+// クォート内の改行も正しく扱う文字単位のCSVパーサー
 function parseCSV(text: string): string[][] {
   const rows: string[][] = [];
-  const lines = text.split("\n");
-  for (const line of lines) {
-    if (!line.trim()) continue;
-    const cols: string[] = [];
-    let current = "";
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
+  let row: string[] = [];
+  let cell = "";
+  let inQuotes = false;
+  let i = 0;
+
+  while (i < text.length) {
+    const ch = text[i];
+
+    if (inQuotes) {
       if (ch === '"') {
-        if (inQuotes && line[i + 1] === '"') {
-          current += '"';
-          i++;
+        if (text[i + 1] === '"') {
+          cell += '"';
+          i += 2;
+          continue;
         } else {
-          inQuotes = !inQuotes;
+          inQuotes = false;
+          i++;
+          continue;
         }
-      } else if (ch === "," && !inQuotes) {
-        cols.push(current);
-        current = "";
       } else {
-        current += ch;
+        cell += ch;
+        i++;
+        continue;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+        i++;
+        continue;
+      } else if (ch === ",") {
+        row.push(cell);
+        cell = "";
+        i++;
+        continue;
+      } else if (ch === "\r") {
+        // CRは無視（\r\nの場合）
+        i++;
+        continue;
+      } else if (ch === "\n") {
+        row.push(cell);
+        cell = "";
+        rows.push(row);
+        row = [];
+        i++;
+        continue;
+      } else {
+        cell += ch;
+        i++;
+        continue;
       }
     }
-    cols.push(current);
-    rows.push(cols);
   }
+
+  // 最後の行を追加
+  if (cell.length > 0 || row.length > 0) {
+    row.push(cell);
+    rows.push(row);
+  }
+
   return rows;
 }
 
 function convertDriveUrl(url: string): string {
   if (!url) return "";
-  // https://drive.google.com/file/d/FILE_ID/view... → 直接表示URLに変換
   const match = url.match(/\/file\/d\/([^/]+)/);
   if (match) {
     return `https://drive.google.com/uc?export=view&id=${match[1]}`;
